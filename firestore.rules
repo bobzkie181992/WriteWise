@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Portfolio items (student drafts, reflections, submissions, and teacher feedback)
+    match /portfolio/{itemId} {
+      allow read: if true;
+      allow create: if request.resource.data.userId is string 
+                    && request.resource.data.title is string
+                    && request.resource.data.draft is string;
+      allow update: if true;
+      allow delete: if false;
+    }
+
+    // Student activity audit logs
+    match /activities/{activityId} {
+      allow read: if true;
+      allow create: if request.resource.data.userId is string
+                    && request.resource.data.action is string;
+      allow update: if true;
+      allow delete: if false;
+    }
+
+    // Teacher curriculum assignments
+    match /assignments/{assignmentId} {
+      allow read: if true;
+      allow create, update: if request.resource.data.title is string;
+      allow delete: if true;
+    }
+  }
+}

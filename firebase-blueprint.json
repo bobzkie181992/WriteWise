@@ -1,0 +1,166 @@
+{
+  "entities": {
+    "PortfolioItem": {
+      "title": "Portfolio Item",
+      "description": "Student writing activities, drafts, reflections, and teacher evaluations",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "ID of the student who authored the activity"
+        },
+        "studentName": {
+          "type": "string",
+          "description": "Display name of the student"
+        },
+        "studentEmail": {
+          "type": "string",
+          "description": "Email address of the student"
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of activity (sentence, paragraph, essay, concept_paper, practice, etc.)"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the activity submission"
+        },
+        "draft": {
+          "type": "string",
+          "description": "The student's original writing draft or exercise content"
+        },
+        "revisedDraft": {
+          "type": "string",
+          "description": "Optional revised draft after student or AI revision"
+        },
+        "reflection": {
+          "type": "string",
+          "description": "Student reflection on writing process and AI usage"
+        },
+        "skillsPracticed": {
+          "type": "array",
+          "description": "List of writing skills demonstrated"
+        },
+        "scaffoldingTier": {
+          "type": "number",
+          "description": "Scaffolding level tier from 1 to 5"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp when the activity was created"
+        },
+        "status": {
+          "type": "string",
+          "description": "Check status: pending, checked, or needs_revision"
+        },
+        "score": {
+          "type": "number",
+          "description": "Numerical score from 0 to 100 awarded by teacher"
+        },
+        "teacherFeedback": {
+          "type": "string",
+          "description": "Constructive evaluation notes written by teacher"
+        },
+        "checkedAt": {
+          "type": "string",
+          "description": "ISO timestamp when teacher evaluated the activity"
+        },
+        "checkedBy": {
+          "type": "string",
+          "description": "Identifier of the teacher who checked the work"
+        }
+      },
+      "required": ["userId", "type", "title", "draft", "createdAt"]
+    },
+    "StudentActivity": {
+      "title": "Student Activity",
+      "description": "Log of student progress, exercises, and actions",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Student ID"
+        },
+        "action": {
+          "type": "string",
+          "description": "Action performed (e.g., completed_sentence, drafted_paragraph, saved_portfolio)"
+        },
+        "level": {
+          "type": "number",
+          "description": "Scaffolding level"
+        },
+        "details": {
+          "type": "string",
+          "description": "Details of the activity"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "ISO timestamp of the activity"
+        }
+      },
+      "required": ["userId", "action", "timestamp"]
+    },
+    "Assignment": {
+      "title": "Assignment",
+      "description": "Curriculum writing assignments created by teacher for students",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Title of the assignment"
+        },
+        "description": {
+          "type": "string",
+          "description": "Prompt instructions and expectations"
+        },
+        "level": {
+          "type": "string",
+          "description": "Writing level category"
+        },
+        "scaffoldingTier": {
+          "type": "number",
+          "description": "Required scaffolding tier"
+        },
+        "dueDate": {
+          "type": "string",
+          "description": "Target completion date"
+        },
+        "assignedBy": {
+          "type": "string",
+          "description": "Teacher identity"
+        },
+        "assignedClass": {
+          "type": "string",
+          "description": "Target class cohort"
+        },
+        "targetWords": {
+          "type": "number",
+          "description": "Suggested word count"
+        },
+        "rubricFocus": {
+          "type": "array",
+          "description": "Target rubric criteria"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        }
+      },
+      "required": ["title", "description", "level", "dueDate"]
+    }
+  },
+  "firestore": {
+    "/portfolio/{itemId}": {
+      "schema": "PortfolioItem",
+      "description": "Collection of student writing submissions, activity drafts, and teacher grading evaluations"
+    },
+    "/activities/{activityId}": {
+      "schema": "StudentActivity",
+      "description": "Real-time audit log of student exercises and actions"
+    },
+    "/assignments/{assignmentId}": {
+      "schema": "Assignment",
+      "description": "Curriculum tasks assigned by teachers for students to view and complete"
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "Remix AI-Balanced Writing",
+  "description": "A Tiered Scaffolding Application for AI-Balanced Writing Development Among Grade 11 Students",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
