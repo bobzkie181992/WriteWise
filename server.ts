@@ -2,34 +2,46 @@ import express, { Request, Response } from "express";
 import path from "path";
 import dotenv from "dotenv";
 import { GoogleGenAI, Type } from "@google/genai";
+import { createServer as createViteServer } from "vite";
 
 dotenv.config();
 
 const app = express();
 app.use(express.json());
 
-// Initialize Gemini SDK securely on the server
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-  httpOptions: {
-    headers: {
-      "User-Agent": "aistudio-build",
-    },
-  },
-});
+// Hardcoded Port 3000 strictly required by container infrastructure
+const PORT = 3000;
 
-// Port configuration
-const PORT = process.env.PORT || 3000;
-const IS_PROD = process.env.NODE_ENV === "production";
+// Lazy initialization of Gemini SDK client securely on the server
+let aiClient: GoogleGenAI | null = null;
+function getAi(): GoogleGenAI | null {
+  if (!process.env.GEMINI_API_KEY) return null;
+  if (!aiClient) {
+    try {
+      aiClient = new GoogleGenAI({
+        apiKey: process.env.GEMINI_API_KEY,
+        httpOptions: {
+          headers: {
+            "User-Agent": "aistudio-build",
+          },
+        },
+      });
+    } catch (_err) {
+      return null;
+    }
+  }
+  return aiClient;
+}
 
 // Safe wrapper to call Gemini API without crashing or emitting error tokens to stderr
 async function safeGenerateContent(params: any): Promise<any> {
   try {
-    if (!process.env.GEMINI_API_KEY) return null;
+    const ai = getAi();
+    if (!ai) return null;
     const response = await ai.models.generateContent(params);
     return response;
   } catch (_err) {
-    // Graceful silent fallback without emitting 403 or PERMISSION_DENIED to stderr
+    // Graceful silent fallback without crashing or emitting unhandled exceptions
     return null;
   }
 }
@@ -1266,23 +1278,26 @@ Respond ONLY with valid JSON in this exact schema:
 });
 
 // -------------------------------------------------------------
-// SERVING FRONTEND IN PRODUCTION
+// VITE MIDDLEWARE & PRODUCTION STATIC SERVING
 // -------------------------------------------------------------
-if (IS_PROD) {
-  // Serve static assets from Vite's build output directory
-  const distPath = path.resolve(__dirname, "dist");
-  app.use(express.static(distPath));
+async function startServer() {
+  if (process.env.NODE_ENV !== "production") {
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: "spa",
+    });
+    app.use(vite.middlewares);
+  } else {
+    const distPath = path.join(process.cwd(), "dist");
+    app.use(express.static(distPath));
+    app.get("*", (_req: Request, res: Response) => {
+      res.sendFile(path.join(distPath, "index.html"));
+    });
+  }
 
-  app.get("*", (req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
-  });
-} else {
-  app.get("/", (req, res) => {
-    res.send("AI-Balanced Writing Backend API server is running on port " + PORT);
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on http://localhost:${PORT}`);
   });
 }
 
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Server is running in ${IS_PROD ? "production" : "development"} mode on port ${PORT}`);
-});
+startServer();

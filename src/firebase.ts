@@ -9,7 +9,7 @@ import {
   updateDoc, 
   deleteDoc,
   doc,
-  initializeFirestore
+  getDocFromServer
 } from "firebase/firestore";
 import { 
   getAuth,
@@ -23,31 +23,75 @@ import {
   User as FirebaseUser
 } from "firebase/auth";
 import { Assignment, INITIAL_ASSIGNMENTS } from "./types";
+import firebaseConfig from "../firebase-applet-config.json";
 
-// Read Firebase Config
-const firebaseConfig = {
-  projectId: "gen-lang-client-0562722477",
-  appId: "1:474517788537:web:4e449eaa1828df1a3801a8",
-  apiKey: "AIzaSyCcMZsLv0gmUqOJa4I-H4zgHidHMeWgB3k",
-  authDomain: "gen-lang-client-0562722477.firebaseapp.com",
-  storageBucket: "gen-lang-client-0562722477.firebasestorage.app",
-  messagingSenderId: "474517788537",
-};
+export enum OperationType {
+  CREATE = "create",
+  UPDATE = "update",
+  DELETE = "delete",
+  LIST = "list",
+  GET = "get",
+  WRITE = "write",
+}
 
-let app;
-let db: any;
-let auth: any;
-let isFirebaseAvailable = false;
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  };
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): FirestoreErrorInfo {
+  const currentUser = auth?.currentUser;
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: currentUser?.uid,
+      email: currentUser?.email,
+      emailVerified: currentUser?.emailVerified,
+      isAnonymous: currentUser?.isAnonymous,
+      tenantId: currentUser?.tenantId,
+      providerInfo: currentUser?.providerData?.map((p: any) => ({
+        providerId: p.providerId,
+        email: p.email,
+      })) || [],
+    },
+    operationType,
+    path,
+  };
+  console.error("Firestore Error:", JSON.stringify(errInfo));
+  return errInfo;
+}
+
+export let app: any;
+export let db: any;
+export let auth: any;
+export let isFirebaseAvailable = false;
 
 try {
   app = initializeApp(firebaseConfig);
-  
-  // Initialize Firestore with specific database ID from configuration
-  db = getFirestore(app, "ai-studio-c72e0eeb-d2f4-4fa1-aa7e-20ee6abf59b5");
-  
+  // CRITICAL: Initialize Firestore with the exact database ID from firebase-applet-config.json
+  db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
   auth = getAuth(app);
   isFirebaseAvailable = true;
-  console.log("Firebase initialized successfully with database:", "ai-studio-c72e0eeb-d2f4-4fa1-aa7e-20ee6abf59b5");
+  console.log("Firebase initialized successfully with database:", firebaseConfig.firestoreDatabaseId);
+
+  // Connection validation per skill specification
+  getDocFromServer(doc(db, "test", "connection")).catch((error) => {
+    if (error instanceof Error && error.message.includes("the client is offline")) {
+      console.warn("Please check your Firebase configuration or network connection.");
+    }
+  });
 } catch (error) {
   console.error("Firebase Initialization Failed. Falling back to robust local database:", error);
 }
@@ -249,8 +293,6 @@ export async function logoutUser(): Promise<void> {
 // -------------------------------------------------------------
 // SECURE DATA PERSISTENCE LAYER (Firestore + LocalStorage fallback)
 // -------------------------------------------------------------
-export { db, auth, isFirebaseAvailable };
-
 // Interfaces
 export interface PortfolioItem {
   id?: string;
